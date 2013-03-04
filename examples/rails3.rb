@@ -1,36 +1,41 @@
-# ------------------------------------------------------------------------------
-# Sample rails 3 config
-# ------------------------------------------------------------------------------
+# -----------------------------------------------
+# Sample Unicorn configuration for a Rails 3 app
+# -----------------------------------------------
 
-# Set your full path to application.
+# Absolute path to the application.
 app_path = "/path/to/app"
 
-# Set unicorn options
+# Unicorn options
 worker_processes 1
 preload_app true
 timeout 180
 listen "127.0.0.1:9000"
 
-# Spawn unicorn master worker for user apps (group: apps)
-user 'apps', 'apps' 
+# Spawn Unicorn master worker for the user `apps` with
+# a group of `apps`.
+user 'apps', 'apps'
 
-# Fill path to your app
+# Absolute path to the application
 working_directory app_path
 
-# Should be 'production' by default, otherwise use other env 
+# Set the environment for Unicorn to execute within.
 rails_env = ENV['RAILS_ENV'] || 'production'
 
-# Log everything to one file
-stderr_path "log/unicorn.log"
-stdout_path "log/unicorn.log"
+# Paths for Unicorn's logging.
+stderr_path "log/unicorn-stderr.log"
+stdout_path "log/unicorn-stdout.log"
 
-# Set master PID location
+# Location of Unicorn's master PID file
 pid "#{app_path}/tmp/pids/unicorn.pid"
 
+
+# TODO: add comment
 before_fork do |server, worker|
   ActiveRecord::Base.connection.disconnect!
 
   old_pid = "#{server.config[:pid]}.oldbin"
+
+  # TODO: confirm this works
   if File.exists?(old_pid) && server.pid != old_pid
     begin
       Process.kill("QUIT", File.read(old_pid).to_i)
@@ -40,6 +45,7 @@ before_fork do |server, worker|
   end
 end
 
+# TODO: add comment
 after_fork do |server, worker|
   ActiveRecord::Base.establish_connection
 end
