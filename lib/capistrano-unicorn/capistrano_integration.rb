@@ -7,7 +7,7 @@ module CapistranoUnicorn
       'unicorn:start',
       'unicorn:stop',
       'unicorn:restart',
-      'unicorn:reload', 
+      'unicorn:reload',
       'unicorn:shutdown',
       'unicorn:add_worker',
       'unicorn:remove_worker'
@@ -24,55 +24,49 @@ module CapistranoUnicorn
           _cset(:unicorn_restart_sleep_time) { 2 }
         end
 
-        # Check if a remote process exists using its pid file
-        #
+        # using its pid file, check if a remote Unicorn process exists
         def remote_process_exists?(pid_file)
           "[ -e #{pid_file} ] && kill -0 `cat #{pid_file}` > /dev/null 2>&1"
         end
 
-        # Stale Unicorn process pid file
-        #
+        # pid file of stale Unicorn
         def old_unicorn_pid
           "#{unicorn_pid}.oldbin"
         end
 
-        # Command to check if Unicorn is running
-        #
+        # Is Unicorn running?
         def unicorn_is_running?
           remote_process_exists?(unicorn_pid)
         end
 
-        # Command to check if stale Unicorn is running
-        #
+        # is a stale Unicorn running?
         def old_unicorn_is_running?
           remote_process_exists?(old_unicorn_pid)
         end
 
-        # Get unicorn master process PID (using the shell)
-        #
+        # Get PID of Unicorn master process (using the shell)
         def get_unicorn_pid(pid_file=unicorn_pid)
           "`cat #{pid_file}`"
         end
 
         # Get unicorn master (old) process PID
-        #
         def get_old_unicorn_pid
           get_unicorn_pid(old_unicorn_pid)
         end
 
-        # Send a signal to a unicorn master processes
-        #
+        # Send a signal to a Unicorn master processes
         def unicorn_send_signal(signal, pid=get_unicorn_pid)
           "#{try_sudo} kill -s #{signal} #{pid}"
         end
 
         # Kill Unicorns in multiple ways O_O
-        #
         def kill_unicorn(signal)
           script = <<-END
             set -x;
+
             if #{unicorn_is_running?}; then
               echo "Stopping Unicorn...";
+
               #{unicorn_send_signal(signal)};
             else
               echo "Unicorn is not running.";
@@ -83,13 +77,13 @@ module CapistranoUnicorn
         end
 
         # Start the Unicorn server
-        #
         def start_unicorn
-          primary_config_path = "#{current_path}/config/unicorn.rb"
+          primary_config_path   = "#{current_path}/config/unicorn.rb"
           secondary_config_path = "#{current_path}/config/unicorn/#{unicorn_env}.rb"
 
           script = <<-END
             set -x;
+
             if [ -e #{primary_config_path} ]; then
               UNICORN_CONFIG_PATH=#{primary_config_path};
             else
@@ -97,6 +91,7 @@ module CapistranoUnicorn
                 UNICORN_CONFIG_PATH=#{secondary_config_path};
               else
                 echo "Config file for \"#{unicorn_env}\" environment was not found at either \"#{primary_config_path}\" or \"#{secondary_config_path}\"";
+
                 exit 1;
               fi;
             fi;
@@ -104,6 +99,7 @@ module CapistranoUnicorn
             if [ -e #{unicorn_pid} ]; then
               if kill -0 `cat #{unicorn_pid}` > /dev/null 2>&1; then
                 echo "Unicorn is already running!";
+
                 exit 0;
               fi;
 
@@ -111,35 +107,44 @@ module CapistranoUnicorn
             fi;
 
             echo "Starting Unicorn...";
+
             cd #{current_path} && BUNDLE_GEMFILE=#{current_path}/Gemfile #{unicorn_bundle} exec #{unicorn_bin} -c $UNICORN_CONFIG_PATH -E #{app_env} -D;
           END
 
           script
         end
 
-        #
+        # -----------------------------
         # Unicorn cap tasks
-        #
+        # -----------------------------
         namespace :unicorn do
+          # Start the Unicorn master process
           desc 'Start Unicorn master process'
           task :start, :roles => :app, :except => {:no_release => true} do
             run start_unicorn
           end
 
+          # End (QUIT) the Unicorn master process
           desc 'Stop Unicorn'
           task :stop, :roles => :app, :except => {:no_release => true} do
             run kill_unicorn('QUIT')
           end
 
+          # End (TERM) the Unicorn master process
           desc 'Immediately shutdown Unicorn'
           task :shutdown, :roles => :app, :except => {:no_release => true} do
             run kill_unicorn('TERM')
           end
 
+          # Restart the Unicorn master process
+          #
+          # If Unicorn is running, send a USR2 signal
+          # Otherwise, start Unicorn
           desc 'Restart Unicorn'
           task :restart, :roles => :app, :except => {:no_release => true} do
             run <<-END
               set -x;
+
               if #{unicorn_is_running?}; then
                 echo "Restarting Unicorn...";
                 #{unicorn_send_signal('USR2')};
@@ -147,7 +152,8 @@ module CapistranoUnicorn
                 #{start_unicorn}
               fi;
 
-              sleep #{unicorn_restart_sleep_time}; # in order to wait for the (old) pidfile to show up
+              # in order to wait for the (old) pidfile to show up
+              sleep #{unicorn_restart_sleep_time};
 
               if #{old_unicorn_is_running?}; then
                 #{unicorn_send_signal('QUIT', get_old_unicorn_pid)};
@@ -155,10 +161,12 @@ module CapistranoUnicorn
             END
           end
 
+          # Reload the Unicorn master process
           desc 'Reload Unicorn'
           task :reload, :roles => :app, :except => {:no_release => true} do
             run <<-END
               set -x;
+
               if #{unicorn_is_running?}; then
                 echo "Reloading Unicorn...";
                 #{unicorn_send_signal('HUP')};
@@ -168,10 +176,12 @@ module CapistranoUnicorn
             END
           end
 
+          # Add a new worker to the Unicorn master process
           desc 'Add a new worker'
           task :add_worker, :roles => :app, :except => {:no_release => true} do
             run <<-END
               set -x;
+
               if #{unicorn_is_running?}; then
                 echo "Adding a new Unicorn worker...";
                 #{unicorn_send_signal('TTIN')};
@@ -181,10 +191,12 @@ module CapistranoUnicorn
             END
           end
 
+          # Remove a worker from the Unicorn master process
           desc 'Remove amount of workers'
           task :remove_worker, :roles => :app, :except => {:no_release => true} do
             run <<-END
               set -x;
+
               if #{unicorn_is_running?}; then
                 echo "Removing a Unicorn worker...";
                 #{unicorn_send_signal('TTOU')};
@@ -200,5 +212,7 @@ module CapistranoUnicorn
 end
 
 if Capistrano::Configuration.instance
-  CapistranoUnicorn::CapistranoIntegration.load_into(Capistrano::Configuration.instance)
+  CapistranoUnicorn::CapistranoIntegration.load_into(
+    Capistrano::Configuration.instance
+  )
 end
