@@ -1,5 +1,5 @@
 # -----------------------------------------------
-# Sample Unicorn configuration for a Rails 3 app
+# Sample Unicorn Configuration for a Rails 3 App
 # -----------------------------------------------
 
 # Absolute path to the application.

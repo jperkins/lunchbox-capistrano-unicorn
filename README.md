@@ -10,7 +10,7 @@ Install from Rubygems:
 gem install capistrano-unicorn
 ```
 
-To Install using Bundler, modify your project's `Gemfile`:
+To install using Bundler, modify your project's `Gemfile`:
 
 ```ruby
 group :development do
@@ -23,28 +23,28 @@ end
 
 ### Setup
 
-Load `capistrano-unicorn` in `config/deploy.rb`:
+In your application's `config/deploy.rb`, require `capistrano-unicorn`:
 
 ```ruby
 require 'capistrano-unicorn'
 ```
 
-Add Unicorn restart task to the `deplay:restart` hook:
+Add the `unicorn:reload` (or `unicorn:restart`) task to the `deplay:restart`
+hook:
 
 ```ruby
 after 'deploy:restart', 'unicorn:reload'    # app is **not** preloaded
 after 'deploy:restart', 'unicorn:restart'   # app is preloaded
 ```
 
-Create a new configuration file `config/unicorn/unicorn.rb` or
-`config/unicorn/STAGE.rb`, where stage is your deployment environment.
+Create a Unicorn configuration file at `config/unicorn/unicorn.rb`. A [sample
+configuration][1] is provided. For more examples and configuration options,
+please refer to the Unicorn documentation.
 
-TODO: fix this link
-Example config -
-[examples/rails3.rb](https://github.com/sosedoff/capistrano-unicorn/blob/master/examples/rails3.rb).
+For use in an environment where Capistrano Multistage is in use, additional
+configuration is required. Checkout the section of this document "Using
+Capistrano Multistage with Capistrano Unicorn" for more information.
 
-Please refer to the Unicorn documentation for more examples and configuration
-options.
 
 ### Test
 
@@ -64,12 +64,12 @@ cap unicorn:reload
 
 ## Configuration
 
-You can modify any of the following options in your `deploy.rb` config.
+Within your `config/deploy.rb`, you can modify any of the following options:
+
 
 ### `unicorn_env`
 
-Sets the environment for Unicorn to execute within. Defaults to `rails_env`
-variable.
+Sets the environment for Unicorn to execute within. Defaults to `rails_env`.
 
 ### `unicorn_pid` - 
 
@@ -154,8 +154,7 @@ set :rails_env,   "staging"
 
 Much cleaner!
 
-TODO: fix this link
-Original Blogpost: http://blog.sosedoff.com/2012/01/21/using-capistrano-unicorn-with-multistage-environment/
+[Original Blogpost][2] 
 
 
 ## Available Tasks
@@ -175,3 +174,11 @@ cap unicorn:stop            # Stop Unicorn
 ## License
 
 See LICENSE file for details.
+
+
+[1]: https://github.com/sosedoff/capistrano-unicorn/blob/master/examples/rails3.rb "sample capistrano-unicorn configuration"
+[2]: http://blog.sosedoff.com/2012/01/21/using-capistrano-unicorn-with-multistage-environment/ "capistrano unicorn with capistrano multistage"
+
+
+
+
